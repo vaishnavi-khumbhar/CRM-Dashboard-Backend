@@ -9,7 +9,12 @@ import com.crm.project.service.UserService;
 
 @RestController
 @RequestMapping("/api/auth")
-@CrossOrigin(origins = "*")
+
+// ✅ CORS FIX (Frontend allow)
+@CrossOrigin(origins = {
+        "http://localhost:3000",
+        "https://vaishnavi-khumbhar.github.io"
+})
 public class AuthController {
 
     @Autowired
@@ -22,12 +27,16 @@ public class AuthController {
     @PostMapping("/signup")
     public String signup(@RequestBody User user) {
 
-        // Trim values
-        String email = user.getEmail().trim();
+        if (user.getEmail() == null || user.getPassword() == null) {
+            return "Invalid Data";
+        }
+
+        String email = user.getEmail().trim().toLowerCase();
         String password = user.getPassword().trim();
 
-        // 🔥 CHECK IF USER ALREADY EXISTS
+        // check existing user
         User existing = repo.findByEmailIgnoreCase(email);
+
         if (existing != null) {
             return "User already exists";
         }
@@ -44,21 +53,23 @@ public class AuthController {
     @PostMapping("/login")
     public String login(@RequestBody User user) {
 
-        String email = user.getEmail().trim();
+        if (user.getEmail() == null || user.getPassword() == null) {
+            return "Invalid Credentials";
+        }
+
+        String email = user.getEmail().trim().toLowerCase();
         String password = user.getPassword().trim();
 
-        // 🔥 CASE-INSENSITIVE EMAIL SEARCH
         User existing = repo.findByEmailIgnoreCase(email);
 
         if (existing != null && existing.getPassword().equals(password)) {
 
-            // 🔥 SAVE LOGIN HISTORY
             userService.saveLoginHistory("LOGIN", email);
 
             return "Login Successful";
-        } else {
-            return "Invalid Credentials";
         }
+
+        return "Invalid Credentials";
     }
 
     // ✅ LOGOUT
@@ -69,8 +80,7 @@ public class AuthController {
             return "Email required";
         }
 
-        // 🔥 SAVE LOGOUT HISTORY
-        userService.saveLoginHistory("LOGOUT", email.trim());
+        userService.saveLoginHistory("LOGOUT", email.trim().toLowerCase());
 
         return "Logout Successful";
     }
